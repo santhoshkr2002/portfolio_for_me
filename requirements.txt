@@ -1,0 +1,16 @@
+langchain
+langgraph
+langchain-core
+langchain-community
+langchain-groq
+langchain-huggingface
+python-dotenv
+typing-extensions
+langchain-chroma
+chromadb
+sentence-transformers
+pypdf
+flask
+flask-cors
+uvicorn
+pydantic
