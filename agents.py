@@ -1,21 +1,25 @@
 import os
-from dotenv import load_dotenv
 from typing import TypedDict
-from langchain_groq import ChatGroq 
+from langchain_groq import ChatGroq
 from langgraph.graph import StateGraph
 from rag import retrieve_documents
 import re
 
-# Load environment variables from .env file
-load_dotenv()
+# In production (Render), env vars are set directly in the dashboard.
+# Only load a local .env file when running locally.
+if os.getenv("RENDER") is None:
+    from dotenv import load_dotenv
+    load_dotenv()
 
-# Access the API key
-api_key = os.getenv("groq_api_key")
+# Fail loudly at startup if the key is missing, instead of a cryptic
+# crash deep inside ChatGroq's validation.
+groq_api_key = os.environ["GROQ_API_KEY"]
 
-# You can now use api_key in your application
-# print(f"Your API Key: {api_key}")
+llm = ChatGroq(
+    model="llama-3.1-8b-instant",
+    api_key=groq_api_key,
+)
 
-llm= ChatGroq(model="llama-3.1-8b-instant")
 
 class AgentState(TypedDict):
     user_input: str
@@ -25,7 +29,7 @@ class AgentState(TypedDict):
     final_output: str
 
 
-def rag_node(state:AgentState):
+def rag_node(state: AgentState):
 
     question = state["user_input"]
 
@@ -42,6 +46,7 @@ def rag_node(state:AgentState):
     ]
 
     return state
+
 
 def portfolio_assistant(state: AgentState):
 
@@ -95,10 +100,9 @@ Answer:
 
     response = llm.invoke(prompt)
 
-    answer= response.content
+    answer = response.content
 
     answer = re.sub(r"#{1,6}\s*", "", answer)
-
 
     # Remove bold and italic
     answer = answer.replace("**", "")
@@ -117,9 +121,9 @@ Answer:
     answer = re.sub(r"\s+", " ", answer).strip()
 
     return {
-
         "final_output": answer
-        }
+    }
+
 
 graph = StateGraph(AgentState)
 graph.add_node("rag", rag_node)
@@ -129,6 +133,7 @@ graph.add_edge("rag", "assistant")
 graph.set_finish_point("assistant")
 
 graph = graph.compile()
+
 
 def process_input(question: str):
 
